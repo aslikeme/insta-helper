@@ -1,0 +1,13 @@
+---
+- name: cadvisor | Pull cadvisor docker image
+  ansible.builtin.shell:
+    cmd: docker pull {{ cadvisor_image_name }}:{{ cadvisor_version }}
+
+- name: cadvisor | Get cadvisor compose file
+  ansible.builtin.template:
+    src: "{{ cadvisor_docker_tempalte_path }}"
+    dest: "{{ cadvisor_docker_dest_path }}"
+
+- name: cadvisor | Up cadvisor in docker
+  ansible.builtin.shell:
+    cmd: docker compose -f {{ cadvisor_docker_dest_path }} up -d --force-recreate

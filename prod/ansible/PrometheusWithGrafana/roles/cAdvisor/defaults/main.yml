@@ -1,0 +1,35 @@
+---
+cadvisor_hostname: "cadvisor"
+cadvisor_dir: /opt/cadvisor
+
+cadvisor_in_docker: true
+
+cadvisor_version: v0.52.0
+
+cadvisor_port: 9280
+
+cadvisor_options: [] # like ["--housekeeping_interval=30s", "--docker_only=true", "--disable_metrics=disk,network,tcp,udp,percpu,sched,process"]
+
+# in host
+cadvisor_url: https://github.com/google/cadvisor/releases/download/
+cadvisor_download: "{{ cadvisor_url }}/{{ cadvisor_version }}/cadvisor-{{ cadvisor_version }}-linux-amd64"
+cadvisor_checksum: "30602f675e9bcd39b0d4cd4bd9e83c0849dd4bb3a60a0544b9f2a6451a3facfe"
+cadvisor_service_template_path: "{{ role_path }}/templates/systemd-system-cadvisor-service.j2"
+cadvisor_runtime_options: >
+  "{{ cadvisor_options | join(" ") }}"
+
+# in docker settings
+cadvisor_image_name: gcr.io/cadvisor/cadvisor
+cadvisor_container_name: "cadvisor" # if start in docker compose
+cadvisor_docker_tempalte_path: "{{ role_path }}/templates/cadvisor-compose.yml.j2"
+cadvisor_docker_dest_path: "{{ cadvisor_dir }}/cadvisor.yml"
+cadvisor_docker_volumes:
+  - /:/rootfs:ro
+  - /var/run:/var/run:rw
+  - /sys:/sys:ro
+  - /var/lib/docker/:/var/lib/docker:ro
+  - /dev/disk/:/dev/disk:ro
+  - /cgroup:/cgroup:ro
+
+cadvisor_docker_devices:
+  - /dev/kmsg:/dev/kmsg
