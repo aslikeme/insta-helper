@@ -1,0 +1,7 @@
+---
+ubuntu_ver      : focal
+unit_file       : "../web-app.service.j2"
+project_path    : "/home/ubuntu/webapp"
+deploy_pBook    : "../deploy_pBook.yml"
+folder_owner    : ubuntu
+folder_group    : ubuntu
