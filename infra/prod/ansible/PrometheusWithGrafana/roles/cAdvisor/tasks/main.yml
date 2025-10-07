@@ -1,0 +1,11 @@
+---
+- name: cadvistor | Create cadvisor directory
+  ansible.builtin.file:
+    path: "{{ cadvisor_dir }}"
+    state: directory
+
+- ansible.builtin.include_tasks: "docker.yml"
+  when: cadvisor_in_docker
+
+- ansible.builtin.include_tasks: "bin.yml"
+  when: not cadvisor_in_docker

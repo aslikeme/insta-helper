@@ -1,0 +1,93 @@
+- name: Install Promtail on prod env
+  hosts: prod 
+  become: yes
+  vars_files: ./vars.yml
+
+  tasks:
+  - name: Install unzip for unpacking archives 
+    apt:
+      name: unzip
+    become: true
+
+  - name: Install promtail using wget and unzip it
+    shell:
+      chdir: "{{home_dir}}"
+      cmd: |
+        wget https://github.com/grafana/loki/releases/download/{{promtail_version}}/promtail-linux-amd64.zip
+        unzip "promtail-linux-amd64.zip"  
+        chmod a+x "promtail-linux-amd64"
+        sudo mv ./promtail-linux-amd64 /usr/local/bin/promtail
+
+  - name: Copy promtail configuration
+    copy:
+      src: ./resources/promtail-config.yml
+      dest: /etc/promtail-config.yml.tmp
+  
+  - name: Set $NODE_NAME in promtail-config.yml
+    environment:
+      NODE_NAME: "{{ vm_label }}"
+      NODE_IP: "{{ ansible_host }}"
+    shell:
+      chdir: "/etc"
+      cmd: envsubst < promtail-config.yml.tmp > promtail-config.yml
+      
+  - name: Copy promtail.service (unit for systemd) to /etc/systemd/system folder
+    copy:
+      src: ./resources/promtail.service
+      dest: /etc/systemd/system
+    become: true
+
+  - name: Load promtail unit and start it
+    systemd:
+      name: promtail
+      state: started
+      daemon_reload: true
+      enabled: true 
+    become: true
+
+- name: Install Promtail on testing env
+  hosts: testing 
+  become: yes
+  vars_files: ./vars.yml
+
+  tasks:
+  - name: Install unzip for unpacking archives 
+    apt:
+      name: unzip
+    become: true
+
+  - name: Install promtail using wget and unzip it
+    shell:
+      chdir: "{{home_dir}}"
+      cmd: |
+        wget https://github.com/grafana/loki/releases/download/{{promtail_version}}/promtail-linux-amd64.zip
+        unzip "promtail-linux-amd64.zip"  
+        chmod a+x "promtail-linux-amd64"
+        sudo mv ./promtail-linux-amd64 /usr/local/bin/promtail
+
+  - name: Copy promtail configuration
+    copy:
+      src: ./resources/promtail-config-testing.yml
+      dest: /etc/promtail-config.yml.tmp
+  
+  - name: Set $NODE_NAME in promtail-config.yml
+    environment:
+      NODE_NAME: "{{ vm_label }}"
+      NODE_IP: "{{ ansible_host }}"
+    shell:
+      chdir: "/etc"
+      cmd: envsubst < promtail-config.yml.tmp > promtail-config.yml
+      
+  - name: Copy promtail.service (unit for systemd) to /etc/systemd/system folder
+    copy:
+      src: ./resources/promtail.service
+      dest: /etc/systemd/system
+    become: true
+
+  - name: Load promtail unit and start it
+    systemd:
+      name: promtail
+      state: started
+      daemon_reload: true
+      enabled: true 
+    become: true

@@ -1,0 +1,6 @@
+---
+- name: restart cadvisor
+  become: true
+  systemd:
+    name: cadvisor
+    state: restarted

@@ -1,0 +1,18 @@
+[Unit]
+Description=Skillbox Web Service
+Requires=docker.service
+After=docker.service
+
+[Service]
+TimeoutStartSec=30
+Restart=on-failure
+User=ubuntu
+Group=docker
+ExecStartPre=-/usr/bin/docker stop aslikeme/skillbox:{{CI_COMMIT_BEFORE_SHA}}
+ExecStartPre=-/usr/bin/docker login -u aslikeme -p {{Docker_Hub_Pass}}
+ExecStartPre=-/usr/bin/docker pull aslikeme/skillbox:skillbox-{{CI_COMMIT_SHA}}
+ExecStart=/usr/bin/docker run --rm -d -p 8080:8080 aslikeme/skillbox:skillbox-{{TAG}}
+
+[Install]
+ WantedBy=multi-user.target
+ 

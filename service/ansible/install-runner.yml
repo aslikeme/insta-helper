@@ -1,0 +1,125 @@
+---
+- hosts: runnerVM
+  become: true
+  vars_files: ./vars.yml
+   
+  tasks:
+    - name: install dependencies
+      ansible.builtin.apt:
+        name: "{{item}}"
+        state: present
+        update_cache: yes
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg-agent
+        - software-properties-common
+        - git
+        - build-essential
+        - python3-pip
+        - openssh-server
+
+    - name: Updating pip
+      ansible.builtin.apt:
+        name: python3-pip
+        state: latest
+
+    - name: Install pip dependencies
+      pip:
+        name: 
+        - python-gitlab<=1.12.1
+        - virtualenv
+        - setuptools
+     
+    - name: Add ansible repository.
+      apt_repository:
+        repo: 'ppa:ansible/ansible'
+        update_cache: true
+
+    - name: Install Ansible.
+      ansible.builtin.apt:
+        name: ansible
+        state: present
+        
+    - name: Installing Ansible collection
+      ansible.builtin.command: |
+        ansible-galaxy collection install ansible.posix
+        
+    - name: add GPG key
+      apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+
+    - name: add docker repository to apt
+      apt_repository:
+          repo: deb https://download.docker.com/linux/ubuntu "{{ubuntu_ver}}" stable
+          state: present        
+
+    - name: install docker
+      ansible.builtin.apt:  
+        name: "{{item}}"
+        state: latest
+        update_cache: yes
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+
+    - name: check docker is active
+      ansible.builtin.service:
+          name: docker
+          state: started
+          enabled: yes      
+
+    - name: Ensure group "docker" exists
+      ansible.builtin.group:
+          name: docker
+          state: present      
+
+    - name: adding ubuntu user to docker group
+      ansible.builtin.user:
+          name: ubuntu
+          groups: docker
+          append: yes      
+
+    - name: Adding a Gitlab repo 
+      ansible.builtin.shell: |
+        curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash   
+
+    - name: Installing Gitlab-runner
+      ansible.builtin.apt:  
+        name: gitlab-runner
+        state: latest
+        update_cache: yes
+ 
+    - name: Add gitlab-runner user to docker group
+      ansible.builtin.user:
+        name: gitlab-runner
+        append: yes
+        groups: docker
+
+    - name: Register gitlab docker runner  for prod
+      ansible.builtin.command: |
+        gitlab-runner register -n \
+        --url "{{ gitLab_url }}" \
+        --registration-token "{{ reg_token_prod }}" \
+        --executor shell \
+        --description "shell-runner"
+        --tag-list "shell-webapp"
+ 
+    - name: Copy ansible directory for runner job
+      ansible.builtin.copy:
+        src: "./ansible_export"
+        dest: "/home/ubuntu"
+        mode: '0664'
+        owner: ubuntu
+        group: ubuntu    
+    
+    - name: Copy private key
+      ansible.builtin.copy:
+        src: "~/.ssh/id_ed25519"
+        dest: "/home/ubuntu/.ssh"
+        mode: '0600'
+        owner: ubuntu
+        group: ubuntu      

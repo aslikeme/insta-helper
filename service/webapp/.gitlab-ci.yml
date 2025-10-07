@@ -1,0 +1,71 @@
+---
+
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+ DOCKER_CONTAINER_NAME  : skillbox
+ DOCKERHUB_USERNAME     : aslikeme
+ ANSIBLE_PATH           : "/home/ubuntu/ansible_export"
+
+Building an image:
+
+  stage: build
+  before_script:
+    - docker info
+    - docker login --username ${DOCKERHUB_USERNAME} --password $Docker_Hub_Pass
+
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - echo "Host *" > ~/.ssh/config
+    - echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+
+  script:
+    
+    - echo "** Building an image **"
+    - docker build -t ${DOCKER_CONTAINER_NAME} webapp/
+
+    - echo "** Taging an image **"
+    - docker tag ${DOCKER_CONTAINER_NAME}:latest aslikeme/skillbox:${DOCKER_CONTAINER_NAME}-${CI_COMMIT_SHA}
+    
+    - echo "** Pushing image to registry **"
+    - docker push aslikeme/skillbox:${DOCKER_CONTAINER_NAME}-${CI_COMMIT_SHA}
+
+  tags: 
+    - shell-webapp 
+
+Testing:      
+  stage: test
+  script:
+    - sh webapp/run-tests.sh
+  when: always  
+  tags: 
+    - shell-webapp
+  
+Deploying-image-to-TEST-env:
+  stage: deploy 
+  script:
+    - cd ${ANSIBLE_PATH}; ansible-playbook -i hosts deploy_pBook.yml -e "TAG=${CI_COMMIT_SHA} GROUP=testServers CI_COMMIT_BEFORE_SHA=${CI_COMMIT_BEFORE_SHA} Docker_Hub_Pass=${Docker_Hub_Pass}  CI_COMMIT_SHA=${CI_COMMIT_SHA}" -vvvv
+  when: always
+  only:
+    - master
+    - uat
+  tags: 
+    - shell-webapp
+
+Deploying-image-to-PROD-env:
+  stage: deploy 
+  script:
+        - cd ${ANSIBLE_PATH}; ansible-playbook -i hosts deploy_pBook.yml -e "TAG=${CI_COMMIT_SHA} GROUP=prodServers CI_COMMIT_BEFORE_SHA=${CI_COMMIT_BEFORE_SHA} Docker_Hub_Pass=${Docker_Hub_Pass}  CI_COMMIT_SHA=${CI_COMMIT_SHA}" -vvvv
+  needs: ['Deploying-image-to-TEST-env']
+  when: always
+  only:
+    - master
+  tags: 
+    - shell-webapp
+ 
+ 

@@ -1,0 +1,42 @@
+---
+- hosts: monitoring, monitoringTestingVM
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+    - alertmanager
+
+- hosts: prodServers,runner,grafana,testServers,monitoringTestingVM,grafanaTestingVM
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+    - prometheus_node_exporter
+
+- hosts: monitoring
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+    - prometheus
+
+- hosts: monitoringTestingVM
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+    - prometheus-testing
+
+- hosts: prodServers,testServers
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+    - cAdvisor
+
+- hosts: grafana,grafanaTestingVM
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+    - grafana

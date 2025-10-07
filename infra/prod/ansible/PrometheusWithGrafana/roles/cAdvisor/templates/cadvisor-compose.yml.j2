@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+  cadvisor:
+    image: {{ cadvisor_image_name }}:{{ cadvisor_version }}
+    hostname: {{ cadvisor_hostname }}
+    container_name: {{ cadvisor_container_name }}
+    privileged: true
+{% if cadvisor_options | length > 0 %}
+    command:
+{% for option in cadvisor_options %}
+      - "{{ option }}"
+#      - "-port=8090"
+{% endfor %}
+{% endif %}
+    ports:
+      - {{ cadvisor_port }}:8080
+    volumes:
+{% for item in cadvisor_docker_volumes %}
+      - {{ item }}
+{% endfor %}
+    restart: unless-stopped
+    devices:
+{% for item in cadvisor_docker_devices %}
+      - {{ item }}
+{% endfor %}
+    healthcheck:
+      test: curl -sS -H "http://0.0.0.0:8080" || echo 1
+      interval: 20s
+      timeout: 45s
+      retries: 10

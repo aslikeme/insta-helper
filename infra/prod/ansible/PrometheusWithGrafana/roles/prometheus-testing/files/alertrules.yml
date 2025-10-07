@@ -1,0 +1,29 @@
+groups:
+- name: alert.rules
+  rules:
+  - alert: InstanceDown
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: "critical"
+    annotations:
+      summary: "Endpoint {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minutes."
+  
+  - alert: HostHighCPULoad
+    expr: (sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[2m]))) >0.85) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+    for: 10m
+    labels:
+      severity: "warning"
+    annotations:
+      summary: Host high CPU load (instance {{ $labels.instance }})
+      description: "CPU load is > 85%\n VALUE = {{ $value}}\n LABELS = {{ $labels }}"     
+
+  - alert: Host Unusual Network Throughput In
+    expr: (sum by (instance) (rate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 50) * on(instance) group_left (nodename) node_uname_info{nodename=~".+"}
+    for: 5m
+    labels:
+      severity: "warning"
+    annotations:
+      summary: Host Unusual Network Throughput In (instance {{ $labels.instance }})
+      description: "Host network interfaces are probably receive too much data (> 50 MB/s)\n VALUE = {{ $value }}\n LABELS = {{ $labels }}"         

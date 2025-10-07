@@ -1,0 +1,36 @@
+- name: Installing dependency
+  apt: 
+    name: musl
+    state: present
+
+- name: Download grafana
+  copy: 
+    src: ../files/grafana-enterprise_12.0.2_amd64.deb
+    dest: /tmp
+
+- name: Install grafana
+  command: |
+    dpkg -i /tmp/grafana-enterprise_12.0.2_amd64.deb
+
+- name: "Grafana configuration file copy"
+  template:
+    src: "grafana.conf.j2"
+    dest: /etc/grafana/grafana.ini
+  notify: event_restart_grafana
+
+- name: "Grafana server started"
+  service:
+    name: grafana-server
+    enabled: true
+    state: started
+
+# - name: Copy dashboard
+#   copy: 
+#     src: ../files/*
+#     dest: /tmp
+    
+# - name: "Check if Grafana is accessible."
+#   uri:
+#     url: http://{{grafana_domain}}:3000
+#     method: GET
+#     status_code: 200

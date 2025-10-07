@@ -1,0 +1,30 @@
+---
+- hosts: "{{GROUP}}"
+  become: true
+  
+  vars:
+    unit_file       : "./web-app.service.j2"
+
+  tasks:
+  
+    - name: Copy unit-file using jinja2
+      ansible.builtin.template:
+        src: "{{unit_file}}"
+        dest: /etc/systemd/system/web-app.service 
+        force: yes 
+    
+    - name: Reload systemd
+      ansible.builtin.command:
+        cmd: systemctl daemon-reload
+      notify: systemd_reload 
+
+    - name: Enabling and starting service
+      ansible.builtin.service: 
+        name: web-app
+        state: started
+        enabled: true
+
+  handlers:
+    - name: systemd_reload
+      shell: |
+        systemctl daemon-reload
